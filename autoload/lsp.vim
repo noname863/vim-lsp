@@ -190,6 +190,16 @@ function! lsp#stop_server(server_name) abort
     endif
 endfunction
 
+function! s:OnEvent(job_id, data, event) dict
+    call s:on_text_document_did_change()
+endfunction
+
+let s:callbacks = { 'on_stdout': function('s:OnEvent') }
+
+function! s:StartRefreshing()
+     let g:refreshing = jobstart(['bash', '-c', 'while :; do echo refresh; sleep 0.5; done'], extend({'shell': 'shell 1'}, s:callbacks))
+endfunction
+
 function! s:register_events() abort
     augroup lsp
         autocmd!
@@ -198,11 +208,10 @@ function! s:register_events() abort
         autocmd BufWritePost * call s:on_text_document_did_save()
         autocmd BufWinLeave * call s:on_text_document_did_close()
         autocmd BufWipeout * call s:on_buf_wipeout(bufnr('<afile>'))
+        autocmd InsertEnter * call s:StartRefreshing()
+        autocmd InsertLeave * call jobstop(g:refreshing)
         autocmd InsertLeave * call s:on_text_document_did_change()
         autocmd TextChanged * call s:on_text_document_did_change()
-        if exists('##TextChangedP')
-            autocmd TextChangedP * call s:on_text_document_did_change()
-        endif
         if g:lsp_diagnostics_echo_cursor || g:lsp_diagnostics_float_cursor || g:lsp_highlight_references_enabled
             autocmd CursorMoved * call s:on_cursor_moved()
         endif
