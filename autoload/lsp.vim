@@ -197,7 +197,11 @@ endfunction
 let s:callbacks = { 'on_stdout': function('s:OnEvent') }
 
 function! s:StartRefreshing()
-     let g:refreshing = jobstart(['bash', '-c', 'while :; do echo refresh; sleep 0.5; done'], extend({'shell': 'shell 1'}, s:callbacks))
+    if has("unix")
+        let g:refreshing = jobstart(['bash', '-c', 'while :; do echo refresh; sleep 0.5; done'], extend({'shell': 'shell 1'}, s:callbacks))
+    else
+        let g:refreshing = jobstart([&shell, &shellcmdflag, 'FOR /L %N IN () DO @echo Oops'], extend({'shell': 'shell 1'}, s:callbacks))
+    endif
 endfunction
 
 function! s:register_events() abort
